@@ -18,10 +18,5 @@ def get_engine() -> Engine:
 @contextmanager
 def transaccion() -> Iterator[Session]:
     """Commit al salir; rollback ante cualquier error, para no dejar registros parciales."""
-    with Session(get_engine()) as session:
-        try:
-            yield session
-            session.commit()
-        except BaseException:
-            session.rollback()
-            raise
+    with Session(get_engine()) as session, session.begin():
+        yield session

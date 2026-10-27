@@ -21,7 +21,8 @@ def get_session() -> Iterator[Session]:
 
 
 # scope="function": el commit ocurre antes de enviar la respuesta, no después.
-SessionDep = Annotated[Session, Depends(get_session, scope="function")]
+# NOSONAR: python:S930 no conoce el parámetro scope de Depends (FastAPI >= 0.120).
+SessionDep = Annotated[Session, Depends(get_session, scope="function")]  # NOSONAR
 
 
 def get_autenticacion(session: SessionDep) -> ServicioAutenticacion:
