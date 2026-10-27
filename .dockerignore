@@ -1,0 +1,23 @@
+# [Archetype Convention Addition] Docker build context hygiene (CIS Docker Benchmark 4.x / R5)
+.git
+.github
+.env
+.env.local
+.venv
+venv
+env
+__pycache__
+*.py[cod]
+*.egg-info
+*.log
+tests
+docs
+htmlcov
+.coverage
+.pytest_cache
+.mypy_cache
+.ruff_cache
+build
+dist
+coverage
+*.override.yml

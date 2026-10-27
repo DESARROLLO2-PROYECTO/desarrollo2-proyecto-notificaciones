@@ -1,0 +1,27 @@
+# Python
+.venv/
+venv/
+env/
+__pycache__/
+*.py[cod]
+*.egg-info/
+
+# Configuración local y secretos
+.env
+.env.local
+*.override.yml
+
+# Logs, IDE
+*.log
+.vscode/
+.idea/
+
+# Build y pruebas
+build/
+dist/
+coverage/
+.coverage
+htmlcov/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
