@@ -1,0 +1,51 @@
+name: CI
+
+on:
+  pull_request:
+    branches: [develop, main]
+  push:
+    branches: [develop]  # Sonar necesita una rama base analizada
+
+jobs:
+  test:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262  # v4
+      - uses: astral-sh/setup-uv@07a047e608db84b3d8c06cd9a7c7dcc9c355c18e  # v10.3.2
+        with:
+          version: "0.13.0"
+      - run: uv sync --frozen --no-build
+      - run: uv run --frozen --no-build ruff check .
+      - run: uv run --frozen --no-build ruff format --check .
+      - run: uv run --frozen --no-build mypy app
+      # unit + integración (testcontainers levanta postgres:16.15-alpine); aplica fail_under=80
+      - run: uv run --frozen --no-build pytest --cov=app --cov-report=xml
+      - run: uv run --frozen --no-build coverage report --include='app/domain/*,app/security/*' --fail-under=100
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9  # v7
+        with:
+          name: coverage
+          path: coverage.xml
+
+  docker:
+    needs: test
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262  # v4
+      - run: docker build .
+
+  sonar:
+    needs: test
+    # Se activa con la variable de repo SONAR_ENABLED=true (secrets no se pueden usar en if de job)
+    if: ${{ vars.SONAR_ENABLED == 'true' }}
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262  # v4
+        with:
+          fetch-depth: 0
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333  # v8
+        with:
+          name: coverage
+      - uses: SonarSource/sonarqube-scan-action@d209202bc7d53ff1cc128f7f907dac145c9d6ae9  # v8.3.0
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          SONAR_HOST_URL: https://sonarcloud.io
