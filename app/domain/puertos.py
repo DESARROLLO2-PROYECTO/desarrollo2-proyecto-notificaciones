@@ -49,7 +49,7 @@ class ApiKeyRepository(Protocol):
 
 
 class TipoRepository(Protocol):
-    def obtener(self, nombre: str) -> Tipo: ...
+    def obtener(self, nombre: str) -> Tipo | None: ...
 
 
 class NotificacionRepository(Protocol):

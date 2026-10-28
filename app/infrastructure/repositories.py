@@ -53,17 +53,16 @@ class TipoRepo:
     def __init__(self, session: Session) -> None:
         self._s = session
 
-    def obtener(self, nombre: str) -> Tipo:
+    def obtener(self, nombre: str) -> Tipo | None:
         emisor, destino = aliased(m.Equipo), aliased(m.Equipo)
         t = m.TipoNotificacion
-        return Tipo(
-            *self._s.execute(
-                select(t.codigo, emisor.nombre, destino.nombre, t.ttl_alerta_min)
-                .join(emisor, emisor.id == t.equipo_emisor_id)
-                .join(destino, destino.id == t.equipo_destino_id)
-                .where(t.codigo == nombre)
-            ).one()
-        )
+        fila = self._s.execute(
+            select(t.codigo, emisor.nombre, destino.nombre, t.ttl_alerta_min)
+            .join(emisor, emisor.id == t.equipo_emisor_id)
+            .join(destino, destino.id == t.equipo_destino_id)
+            .where(t.codigo == nombre, t.activo)
+        ).one_or_none()
+        return None if fila is None else Tipo(*fila)
 
 
 def _equipo_id(session: Session, nombre: str) -> int:

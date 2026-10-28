@@ -27,8 +27,8 @@ class FakeApiKeys:
 
 
 class FakeTipos:
-    def obtener(self, nombre: str) -> Tipo:
-        return TIPOS[nombre]
+    def obtener(self, nombre: str) -> Tipo | None:
+        return TIPOS.get(nombre)
 
 
 class FakeNotificaciones:

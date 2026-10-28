@@ -8,7 +8,14 @@ from fastapi.responses import JSONResponse
 
 from app.api import health, notificaciones
 from app.config import get_settings
-from app.domain.errores import ErrorDominio, ErrorInterno, NoAutenticado, NoAutorizado, NoEncontrado
+from app.domain.errores import (
+    ErrorDominio,
+    ErrorInterno,
+    NoAutenticado,
+    NoAutorizado,
+    NoEncontrado,
+    TipoNoDisponible,
+)
 
 log = logging.getLogger(__name__)
 
@@ -23,6 +30,17 @@ _ESTADOS: dict[type[ErrorDominio], int] = {
 def _error_dominio(_: Request, e: Exception) -> JSONResponse:
     assert isinstance(e, ErrorDominio)
     return JSONResponse({"mensaje": e.mensaje}, status_code=_ESTADOS.get(type(e), 500))
+
+
+def _tipo_no_disponible(_: Request, e: Exception) -> JSONResponse:
+    assert isinstance(e, TipoNoDisponible)
+    return JSONResponse(
+        {
+            "mensaje": "Los datos enviados no cumplen las reglas establecidas",
+            "errores": [{"campo": "tipo", "error": e.mensaje}],
+        },
+        status_code=422,
+    )
 
 
 def _error_validacion(request: Request, e: Exception) -> JSONResponse:
@@ -61,6 +79,7 @@ def create_app() -> FastAPI:
     )
     app = FastAPI(title="Notificaciones", version="0.1.0")
     app.add_exception_handler(ErrorDominio, _error_dominio)
+    app.add_exception_handler(TipoNoDisponible, _tipo_no_disponible)
     app.add_exception_handler(RequestValidationError, _error_validacion)
     app.add_exception_handler(Exception, _error_inesperado)
     app.include_router(health.router)

@@ -120,6 +120,40 @@ def test_cuerpo_invalido_es_422_con_lista_de_campos(client, inventario):
     assert {e["campo"] for e in cuerpo["errores"]} == {"stockActual", "nombre"}
 
 
+def test_tipo_inactivo_es_422_y_no_registra(client, inventario):
+    # Arrange
+    cuerpo = _cuerpo()
+    _sql("UPDATE tipos_notificacion SET activo = false WHERE codigo = :c", c=cuerpo["tipo"])
+    try:
+        # Act
+        r = client.post("/notificaciones", json=cuerpo, headers=inventario)
+    finally:
+        _sql("UPDATE tipos_notificacion SET activo = true WHERE codigo = :c", c=cuerpo["tipo"])
+
+    # Assert
+    assert r.status_code == 422
+    assert r.json()["mensaje"] == "Los datos enviados no cumplen las reglas establecidas"
+    assert r.json()["errores"][0]["campo"] == "tipo"
+    assert _sql("SELECT 1 FROM alertas WHERE clave = :k", k=cuerpo["productoId"]) == []
+
+
+def test_tipo_inactivo_no_cierra_la_alerta_activa(client, inventario):
+    # Arrange
+    cuerpo = _cuerpo()
+    assert client.post("/notificaciones", json=cuerpo, headers=inventario).status_code == 201
+    _sql("UPDATE tipos_notificacion SET activo = false WHERE codigo = :c", c=cuerpo["tipo"])
+    try:
+        # Act
+        r = client.post("/notificaciones", json=cuerpo | {"evento": "RESUELTA"}, headers=inventario)
+    finally:
+        _sql("UPDATE tipos_notificacion SET activo = true WHERE codigo = :c", c=cuerpo["tipo"])
+
+    # Assert
+    assert r.status_code == 422
+    abiertas = "SELECT 1 FROM alertas WHERE clave = :k AND cerrada_at IS NULL"
+    assert len(_sql(abiertas, k=cuerpo["productoId"])) == 1
+
+
 def test_id_que_no_es_uuid_es_422(client, inventario):
     r = client.get("/notificaciones/estado/abc", headers=inventario)
     assert r.status_code == 422
