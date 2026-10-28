@@ -25,17 +25,17 @@ class ApiKeyRepo:
         )
         return self._s.scalar(q) or 0
 
-    def crear(self, llave: puertos.ApiKey) -> None:
-        self._s.add(
-            m.ApiKey(
-                equipo_id=_equipo_id(self._s, llave.rol),
-                hash=llave.hash,
-                prefijo=llave.prefijo,
-                creada_at=llave.creada_en,
-                activa=llave.activa,
-            )
+    def crear(self, llave: puertos.ApiKey) -> int:
+        registro = m.ApiKey(
+            equipo_id=_equipo_id(self._s, llave.rol),
+            hash=llave.hash,
+            prefijo=llave.prefijo,
+            creada_at=llave.creada_en,
+            activa=llave.activa,
         )
-        self._s.flush()
+        self._s.add(registro)
+        self._s.flush()  # asigna el id autogenerado
+        return registro.id
 
     def buscar_activa(self, hash: str) -> puertos.ApiKey | None:
         fila = self._s.execute(

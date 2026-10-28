@@ -19,8 +19,9 @@ class FakeApiKeys:
     def contar_activas(self, rol: str) -> int:
         return sum(1 for k in self.llaves if k.rol == rol and k.activa)
 
-    def crear(self, llave: ApiKey) -> None:
+    def crear(self, llave: ApiKey) -> int:
         self.llaves.append(llave)
+        return len(self.llaves)
 
     def buscar_activa(self, hash: str) -> ApiKey | None:
         return next((k for k in self.llaves if k.hash == hash and k.activa), None)

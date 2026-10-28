@@ -14,10 +14,11 @@ def test_crear_llave_guarda_solo_el_hash():
     servicio = ServicioAutenticacion(repo)
 
     # Act
-    llave = servicio.crear_llave("inventario")
+    id_, llave = servicio.crear_llave("inventario")
 
     # Assert
     guardada = repo.llaves[0]
+    assert id_ == 1
     assert guardada.prefijo == llave[:8]
     assert guardada.hash == hashear(llave)
     assert llave not in (guardada.hash, guardada.rol)
@@ -46,7 +47,7 @@ def test_crear_llave_rechaza_tercera_llave_activa():
 def test_autenticar_devuelve_el_rol():
     # Arrange
     servicio = ServicioAutenticacion(FakeApiKeys())
-    llave = servicio.crear_llave("fabricacion")
+    _, llave = servicio.crear_llave("fabricacion")
 
     # Act
     rol = servicio.autenticar(llave, "GET /x")

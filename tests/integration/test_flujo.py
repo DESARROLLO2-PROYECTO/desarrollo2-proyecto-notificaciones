@@ -273,8 +273,10 @@ def test_crear_llave_valida_rol_y_limite(client):
         # Act / Assert
         with pytest.raises(RolInvalido, match="Rol no válido"):
             servicio.crear_llave("admin")
-        servicio.crear_llave("notificaciones")
-        servicio.crear_llave("notificaciones")
+        primera, _ = servicio.crear_llave("notificaciones")
+        segunda, _ = servicio.crear_llave("notificaciones")
+        assert isinstance(primera, int)
+        assert segunda > primera
         with pytest.raises(LimiteDeLlaves, match="Ya existen dos llaves activas para este rol"):
             servicio.crear_llave("notificaciones")
 

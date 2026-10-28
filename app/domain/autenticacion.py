@@ -27,12 +27,12 @@ class ServicioAutenticacion:
             raise NoAutenticado("Acceso denegado")
         return registro.rol
 
-    def crear_llave(self, rol: str) -> str:
-        """Alta de llave. Devuelve la llave en claro; solo se guarda el hash."""
+    def crear_llave(self, rol: str) -> tuple[int, str]:
+        """Alta de llave. Devuelve (id, llave en claro); solo se guarda el hash."""
         if rol not in ROLES:
             raise RolInvalido("Rol no válido")
         if self._llaves.contar_activas(rol) >= MAX_LLAVES_ACTIVAS:
             raise LimiteDeLlaves("Ya existen dos llaves activas para este rol")
         llave = generar_llave()
-        self._llaves.crear(ApiKey(rol, hashear(llave), llave[:PREFIJO], datetime.now(UTC)))
-        return llave
+        id_ = self._llaves.crear(ApiKey(rol, hashear(llave), llave[:PREFIJO], datetime.now(UTC)))
+        return id_, llave
