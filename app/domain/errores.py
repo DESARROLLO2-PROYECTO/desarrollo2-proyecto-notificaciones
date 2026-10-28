@@ -29,3 +29,7 @@ class RolInvalido(ErrorDominio):
 
 class LimiteDeLlaves(ErrorDominio):
     """El rol ya tiene dos llaves activas (HU-NOT-11)."""
+
+
+class TipoNoDisponible(ErrorDominio):
+    """422: tipo fuera del catálogo o inactivo (HU-NOT-01 c4)."""

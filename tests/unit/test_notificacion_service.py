@@ -5,7 +5,7 @@ from uuid import uuid4
 import pytest
 
 from app.domain.catalogo import DatosStock
-from app.domain.errores import ErrorInterno, NoAutorizado, NoEncontrado
+from app.domain.errores import ErrorInterno, NoAutorizado, NoEncontrado, TipoNoDisponible
 from app.domain.notificacion_service import NotificacionService
 from tests.unit.fakes import FakeAlertas, FakeNotificaciones, FakeTipos
 
@@ -94,6 +94,16 @@ def test_registrar_con_emisor_equivocado_lanza_403_y_no_guarda(servicio, notific
     assert "rol=fabricacion" in caplog.text
 
 
+def test_tipo_no_disponible_lanza_422_y_no_guarda(servicio, notificaciones, caplog):
+    # Arrange / Act
+    with caplog.at_level(logging.WARNING), pytest.raises(TipoNoDisponible):
+        servicio.registrar("inventario", "TIPO_INACTIVO", "DETECTADA", DATOS)
+
+    # Assert
+    assert not notificaciones.guardadas
+    assert "RECHAZADA 422" in caplog.text
+
+
 def test_evento_resuelta_cierra_la_alerta_activa(servicio, alertas):
     # Arrange
     servicio.registrar("inventario", "STOCK_BAJO_INSUMO", "DETECTADA", DATOS)
@@ -104,7 +114,7 @@ def test_evento_resuelta_cierra_la_alerta_activa(servicio, alertas):
     # Assert
     assert r.resultado == "ALERTA_CERRADA"
     assert not alertas.activas
-    assert alertas.resueltas[0][1] == "RESUELTA"
+    assert alertas.resueltas[0][1] == "EMISOR"
 
 
 def test_evento_repuesto_sin_alerta_activa(servicio):

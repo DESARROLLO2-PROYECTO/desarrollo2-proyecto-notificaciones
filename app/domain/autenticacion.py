@@ -2,7 +2,6 @@
 
 import logging
 from datetime import UTC, datetime
-from uuid import UUID, uuid4
 
 from app.domain.errores import LimiteDeLlaves, NoAutenticado, RolInvalido
 from app.domain.puertos import ApiKey, ApiKeyRepository
@@ -12,6 +11,7 @@ log = logging.getLogger(__name__)
 
 ROLES = ("inventario", "fabricacion", "notificaciones")
 MAX_LLAVES_ACTIVAS = 2
+PREFIJO = 8  # solo para reconocer la llave; no la expone
 
 
 class ServicioAutenticacion:
@@ -27,13 +27,12 @@ class ServicioAutenticacion:
             raise NoAutenticado("Acceso denegado")
         return registro.rol
 
-    def crear_llave(self, rol: str) -> tuple[UUID, str]:
+    def crear_llave(self, rol: str) -> tuple[int, str]:
         """Alta de llave. Devuelve (id, llave en claro); solo se guarda el hash."""
         if rol not in ROLES:
             raise RolInvalido("Rol no válido")
         if self._llaves.contar_activas(rol) >= MAX_LLAVES_ACTIVAS:
             raise LimiteDeLlaves("Ya existen dos llaves activas para este rol")
         llave = generar_llave()
-        registro = ApiKey(uuid4(), rol, hashear(llave), datetime.now(UTC))
-        self._llaves.crear(registro)
-        return registro.id, llave
+        id_ = self._llaves.crear(ApiKey(rol, hashear(llave), llave[:PREFIJO], datetime.now(UTC)))
+        return id_, llave

@@ -7,7 +7,13 @@ from datetime import UTC, datetime, timedelta
 from uuid import UUID, uuid4
 
 from app.domain.catalogo import DatosStock
-from app.domain.errores import ErrorDominio, ErrorInterno, NoAutorizado, NoEncontrado
+from app.domain.errores import (
+    ErrorDominio,
+    ErrorInterno,
+    NoAutorizado,
+    NoEncontrado,
+    TipoNoDisponible,
+)
 from app.domain.puertos import (
     Alerta,
     AlertaRepository,
@@ -63,6 +69,9 @@ class NotificacionService:
     def _registrar(self, rol: str, tipo: str, evento: str, datos: DatosStock) -> Resultado:
         t = self._tipos.obtener(tipo)
         clave = datos.producto_id
+        if t is None:
+            log.warning("RECHAZADA 422 motivo=tipo no disponible tipo=%s clave=%s", tipo, clave)
+            raise TipoNoDisponible("Tipo de notificación no disponible")
         if t.emisor != rol:
             log.warning(
                 "RECHAZADA 403 motivo=emisor no permitido endpoint=POST /notificaciones"
@@ -78,14 +87,13 @@ class NotificacionService:
 
         if evento != "DETECTADA":
             # Sprint 0: REPUESTO/RESUELTA solo cierran la alerta; el resto es HU-NOT-02.
-            cerrada = self._alertas.resolver(tipo, clave, ahora, evento)
+            cerrada = self._alertas.resolver(tipo, clave, ahora)
             resultado = ALERTA_CERRADA if cerrada else SIN_ALERTA
             log.info("%s tipo=%s destino=%s clave=%s id=-", resultado, tipo, t.destino, clave)
             return Resultado(resultado)
 
         notificacion = Notificacion(uuid4(), tipo, t.destino, ahora, datos)
         alerta = Alerta(
-            uuid4(),
             tipo,
             clave,
             notificacion.id,

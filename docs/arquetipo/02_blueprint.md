@@ -38,7 +38,7 @@ proyecto/
 │   └── infrastructure/                ── INFRASTRUCTURE LAYER (app/infrastructure) ──
 │       ├── db.py                      Engine y sesión; Unit of Work = una transacción por solicitud         [SQLAlchemy 2, psycopg 3]
 │       ├── models.py                  Model (extiende DeclarativeBase): ApiKey, TipoNotificacion,           [SQLAlchemy 2]
-│       │                              Notificacion, Alerta
+│       │                              Equipo, Notificacion, Alerta (+ tablas de HU futuras)
 │       └── repositories.py            Repository/DAO: implementa los puertos; IntegrityError del UNIQUE     [SQLAlchemy 2]
 │                                      → duplicado (concurrencia, HU-NOT-01 c6)
 │

@@ -45,7 +45,7 @@ def _llave(rol: str) -> dict[str, str]:
 
     llave = generar_llave()
     with transaccion() as s:
-        ApiKeyRepo(s).crear(ApiKey(uuid4(), rol, hashear(llave), datetime.now(UTC)))
+        ApiKeyRepo(s).crear(ApiKey(rol, hashear(llave), llave[:8], datetime.now(UTC)))
     return {"X-API-Key": llave}
 
 
@@ -120,6 +120,40 @@ def test_cuerpo_invalido_es_422_con_lista_de_campos(client, inventario):
     assert {e["campo"] for e in cuerpo["errores"]} == {"stockActual", "nombre"}
 
 
+def test_tipo_inactivo_es_422_y_no_registra(client, inventario):
+    # Arrange
+    cuerpo = _cuerpo()
+    _sql("UPDATE tipos_notificacion SET activo = false WHERE codigo = :c", c=cuerpo["tipo"])
+    try:
+        # Act
+        r = client.post("/notificaciones", json=cuerpo, headers=inventario)
+    finally:
+        _sql("UPDATE tipos_notificacion SET activo = true WHERE codigo = :c", c=cuerpo["tipo"])
+
+    # Assert
+    assert r.status_code == 422
+    assert r.json()["mensaje"] == "Los datos enviados no cumplen las reglas establecidas"
+    assert r.json()["errores"][0]["campo"] == "tipo"
+    assert _sql("SELECT 1 FROM alertas WHERE clave = :k", k=cuerpo["productoId"]) == []
+
+
+def test_tipo_inactivo_no_cierra_la_alerta_activa(client, inventario):
+    # Arrange
+    cuerpo = _cuerpo()
+    assert client.post("/notificaciones", json=cuerpo, headers=inventario).status_code == 201
+    _sql("UPDATE tipos_notificacion SET activo = false WHERE codigo = :c", c=cuerpo["tipo"])
+    try:
+        # Act
+        r = client.post("/notificaciones", json=cuerpo | {"evento": "RESUELTA"}, headers=inventario)
+    finally:
+        _sql("UPDATE tipos_notificacion SET activo = true WHERE codigo = :c", c=cuerpo["tipo"])
+
+    # Assert
+    assert r.status_code == 422
+    abiertas = "SELECT 1 FROM alertas WHERE clave = :k AND cerrada_at IS NULL"
+    assert len(_sql(abiertas, k=cuerpo["productoId"])) == 1
+
+
 def test_id_que_no_es_uuid_es_422(client, inventario):
     r = client.get("/notificaciones/estado/abc", headers=inventario)
     assert r.status_code == 422
@@ -158,7 +192,10 @@ def test_dos_detectada_en_paralelo_registran_una_sola(client, inventario):
     # Assert
     assert sorted(r.status_code for r in rs) == [200] * 7 + [201]
     assert len({r.json()["id"] for r in rs}) == 1
-    n = _sql("SELECT count(*) FROM notificaciones WHERE producto_id = :p", p=cuerpo["productoId"])
+    n = _sql(
+        "SELECT count(*) FROM notificaciones WHERE payload->>'productoId' = :p",
+        p=cuerpo["productoId"],
+    )
     assert n[0][0] == 1
 
 
@@ -167,7 +204,7 @@ def test_alerta_vencida_permite_una_nueva_notificacion(client, inventario):
     cuerpo = _cuerpo()
     primera = client.post("/notificaciones", json=cuerpo, headers=inventario).json()["id"]
     _sql(
-        "UPDATE alertas SET expira_en = now() - interval '1 hour' WHERE clave = :c",
+        "UPDATE alertas SET expira_at = now() - interval '1 hour' WHERE clave = :c",
         c=cuerpo["productoId"],
     )
 
@@ -178,7 +215,7 @@ def test_alerta_vencida_permite_una_nueva_notificacion(client, inventario):
     assert r.status_code == 201
     assert r.json()["id"] != primera
     motivos = _sql(
-        "SELECT motivo_resolucion FROM alertas WHERE clave = :c AND resuelta_en IS NOT NULL",
+        "SELECT motivo_resolucion FROM alertas WHERE clave = :c AND cerrada_at IS NOT NULL",
         c=cuerpo["productoId"],
     )
     assert [m[0] for m in motivos] == ["EXPIRACION"]
@@ -216,7 +253,10 @@ def test_falla_al_crear_la_alerta_no_deja_nada_parcial(client, inventario, monke
     assert r.status_code == 500
     assert r.json() == {"mensaje": "No fue posible registrar la notificación, intente de nuevo"}
     p = cuerpo["productoId"]
-    assert _sql("SELECT count(*) FROM notificaciones WHERE producto_id = :p", p=p)[0][0] == 0
+    assert (
+        _sql("SELECT count(*) FROM notificaciones WHERE payload->>'productoId' = :p", p=p)[0][0]
+        == 0
+    )
     assert _sql("SELECT count(*) FROM alertas WHERE clave = :p", p=p)[0][0] == 0
 
 
@@ -233,7 +273,26 @@ def test_crear_llave_valida_rol_y_limite(client):
         # Act / Assert
         with pytest.raises(RolInvalido, match="Rol no válido"):
             servicio.crear_llave("admin")
-        servicio.crear_llave("notificaciones")
-        servicio.crear_llave("notificaciones")
+        primera, _ = servicio.crear_llave("notificaciones")
+        segunda, _ = servicio.crear_llave("notificaciones")
+        assert isinstance(primera, int)
+        assert segunda > primera
         with pytest.raises(LimiteDeLlaves, match="Ya existen dos llaves activas para este rol"):
             servicio.crear_llave("notificaciones")
+
+
+def test_equipo_inexistente_falla_y_no_se_toma_por_duplicada(client):
+    # Arrange
+    from sqlalchemy.exc import NoResultFound
+
+    from app.infrastructure.db import transaccion
+    from app.infrastructure.repositories import _equipo_id
+
+    # Act / Assert
+    with transaccion() as s, pytest.raises(NoResultFound):
+        _equipo_id(s, "no_existe")
+
+
+def test_estado_de_id_inexistente_es_404(client, inventario):
+    r = client.get(f"/notificaciones/estado/{uuid4()}", headers=inventario)
+    assert r.status_code == 404

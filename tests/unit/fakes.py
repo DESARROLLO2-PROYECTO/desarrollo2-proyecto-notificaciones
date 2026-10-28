@@ -19,16 +19,17 @@ class FakeApiKeys:
     def contar_activas(self, rol: str) -> int:
         return sum(1 for k in self.llaves if k.rol == rol and k.activa)
 
-    def crear(self, llave: ApiKey) -> None:
+    def crear(self, llave: ApiKey) -> int:
         self.llaves.append(llave)
+        return len(self.llaves)
 
     def buscar_activa(self, hash: str) -> ApiKey | None:
         return next((k for k in self.llaves if k.hash == hash and k.activa), None)
 
 
 class FakeTipos:
-    def obtener(self, nombre: str) -> Tipo:
-        return TIPOS[nombre]
+    def obtener(self, nombre: str) -> Tipo | None:
+        return TIPOS.get(nombre)
 
 
 class FakeNotificaciones:
@@ -63,10 +64,10 @@ class FakeAlertas:
             self.activas.remove(a)
             self.resueltas.append((a, "EXPIRACION"))
 
-    def resolver(self, tipo: str, clave: str, ahora: datetime, motivo: str) -> bool:
+    def resolver(self, tipo: str, clave: str, ahora: datetime) -> bool:
         a = self.obtener_activa(tipo, clave)
         if a is None:
             return False
         self.activas.remove(a)
-        self.resueltas.append((a, motivo))
+        self.resueltas.append((a, "EMISOR"))
         return True

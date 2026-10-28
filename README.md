@@ -41,6 +41,8 @@ Nota: en este sprint `POST /notificaciones` solo acepta `STOCK_BAJO_INSUMO` y
 `STOCK_BAJO_PRODUCTO`. `CONDICION_URGENTE` y `ACUMULACION_PEDIDOS` ya están sembrados en el
 catálogo, pero son de HU-NOT-05/06 y responden 422 ("tipo fuera del catálogo").
 
+El esquema completo (9 tablas) sigue el ER del DAS (`das/02_modelo_er.puml`).
+
 ## 4. Tests locales (sin Docker para la app)
 
 ```bash

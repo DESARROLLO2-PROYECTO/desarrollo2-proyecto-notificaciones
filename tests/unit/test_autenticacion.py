@@ -18,7 +18,8 @@ def test_crear_llave_guarda_solo_el_hash():
 
     # Assert
     guardada = repo.llaves[0]
-    assert guardada.id == id_
+    assert id_ == 1
+    assert guardada.prefijo == llave[:8]
     assert guardada.hash == hashear(llave)
     assert llave not in (guardada.hash, guardada.rol)
 
