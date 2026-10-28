@@ -78,14 +78,13 @@ class NotificacionService:
 
         if evento != "DETECTADA":
             # Sprint 0: REPUESTO/RESUELTA solo cierran la alerta; el resto es HU-NOT-02.
-            cerrada = self._alertas.resolver(tipo, clave, ahora, evento)
+            cerrada = self._alertas.resolver(tipo, clave, ahora)
             resultado = ALERTA_CERRADA if cerrada else SIN_ALERTA
             log.info("%s tipo=%s destino=%s clave=%s id=-", resultado, tipo, t.destino, clave)
             return Resultado(resultado)
 
         notificacion = Notificacion(uuid4(), tipo, t.destino, ahora, datos)
         alerta = Alerta(
-            uuid4(),
             tipo,
             clave,
             notificacion.id,

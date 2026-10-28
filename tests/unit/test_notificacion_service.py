@@ -104,7 +104,7 @@ def test_evento_resuelta_cierra_la_alerta_activa(servicio, alertas):
     # Assert
     assert r.resultado == "ALERTA_CERRADA"
     assert not alertas.activas
-    assert alertas.resueltas[0][1] == "RESUELTA"
+    assert alertas.resueltas[0][1] == "EMISOR"
 
 
 def test_evento_repuesto_sin_alerta_activa(servicio):

@@ -14,11 +14,11 @@ from app.infrastructure.repositories import ApiKeyRepo
 def main(rol: str) -> int:
     try:
         with transaccion() as session:
-            id_, llave = ServicioAutenticacion(ApiKeyRepo(session)).crear_llave(rol)
+            llave = ServicioAutenticacion(ApiKeyRepo(session)).crear_llave(rol)
     except ErrorDominio as e:
         print(e.mensaje, file=sys.stderr)
         return 1
-    print(f"id: {id_}\nrol: {rol}\nllave: {llave}\nGuárdala: no se vuelve a mostrar.")
+    print(f"rol: {rol}\nllave: {llave}\nGuárdala: no se vuelve a mostrar.")
     return 0
 
 

@@ -13,9 +13,9 @@ from app.domain.catalogo import DatosStock, Tipo, construir_mensaje
 
 @dataclass(frozen=True)
 class ApiKey:
-    id: UUID
     rol: str
     hash: str
+    prefijo: str
     creada_en: datetime
     activa: bool = True
 
@@ -35,7 +35,6 @@ class Notificacion:
 
 @dataclass(frozen=True)
 class Alerta:
-    id: UUID
     tipo: str
     clave: str
     notificacion_id: UUID
@@ -64,6 +63,6 @@ class NotificacionRepository(Protocol):
 class AlertaRepository(Protocol):
     def obtener_activa(self, tipo: str, clave: str) -> Alerta | None: ...
     def expirar_vencidas(self, tipo: str, clave: str, ahora: datetime) -> None: ...
-    def resolver(self, tipo: str, clave: str, ahora: datetime, motivo: str) -> bool:
+    def resolver(self, tipo: str, clave: str, ahora: datetime) -> bool:
         """Cierra la alerta activa; False si no había ninguna."""
         ...

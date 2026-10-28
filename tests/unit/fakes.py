@@ -63,10 +63,10 @@ class FakeAlertas:
             self.activas.remove(a)
             self.resueltas.append((a, "EXPIRACION"))
 
-    def resolver(self, tipo: str, clave: str, ahora: datetime, motivo: str) -> bool:
+    def resolver(self, tipo: str, clave: str, ahora: datetime) -> bool:
         a = self.obtener_activa(tipo, clave)
         if a is None:
             return False
         self.activas.remove(a)
-        self.resueltas.append((a, motivo))
+        self.resueltas.append((a, "EMISOR"))
         return True
